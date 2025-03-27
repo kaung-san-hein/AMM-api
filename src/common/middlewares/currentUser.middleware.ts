@@ -2,11 +2,12 @@ import { Injectable, NestMiddleware } from '@nestjs/common';
 import { isArray } from 'class-validator';
 import { NextFunction, Request, Response } from 'express';
 import { AuthService } from 'src/auth/auth.service';
+import { User as UserType } from 'src/auth/types';
 
 declare global {
   namespace Express {
     interface Request {
-      currentUser?: any;
+      currentUser?: UserType;
     }
   }
 }
@@ -35,7 +36,6 @@ export class CurrentUserMiddleware implements NestMiddleware {
 
         const currentUser = await this.authService.findOne(+sub);
         req.currentUser = currentUser;
-        console.log(currentUser)
       } catch (err) {
         req.currentUser = null;
       }

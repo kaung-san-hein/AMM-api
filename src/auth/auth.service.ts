@@ -109,6 +109,7 @@ export class AuthService {
   async findOne(id: number) {
     const result = await this.prisma.user.findUnique({
       where: { id },
+      include: { role: true },
     });
     if (!result) {
       throw new NotFoundException('User not found');
