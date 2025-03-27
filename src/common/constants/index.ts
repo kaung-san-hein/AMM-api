@@ -1,0 +1,1 @@
+export const validationErrorMessage = "Validation failed!"

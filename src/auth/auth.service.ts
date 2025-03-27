@@ -26,7 +26,7 @@ export class AuthService {
       const newUser = await this.prisma.user.create({
         data: {
           name: data.name,
-          phone_no: data.phoneNo,
+          phone_no: data.phone_no,
           password: hashPassword,
         },
       });
@@ -50,7 +50,7 @@ export class AuthService {
   async signinLocal(data: AuthDto): Promise<Tokens> {
     const user = await this.prisma.user.findUnique({
       where: {
-        phone_no: data.phoneNo,
+        phone_no: data.phone_no,
       },
     });
 
