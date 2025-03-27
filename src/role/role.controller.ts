@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { AuthorizeGuard } from 'src/common/guards/authorization.guard';
 
 @Controller('roles')
 export class RoleController {
@@ -9,6 +10,7 @@ export class RoleController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(AuthorizeGuard(5))
   create(@Body() createRoleDto: CreateRoleDto) {
     return this.roleService.create(createRoleDto);
   }

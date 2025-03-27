@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthDto, SignupDto } from './dto';
@@ -16,7 +17,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private config: ConfigService
+    private config: ConfigService,
   ) {}
 
   async signupLocal(data: SignupDto): Promise<Tokens> {
@@ -103,6 +104,24 @@ export class AuthService {
     await this.updateRefreshToken(user.id, tokens.refresh_token);
 
     return tokens;
+  }
+
+  async findOne(id: number) {
+    const result = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    if (!result) {
+      throw new NotFoundException('User not found');
+    }
+    return result;
+  }
+
+  async verifyToken(token: string) {
+    const secret = this.config.get<string>('ACCESS_TOKEN_SECRET');
+
+    const result = await this.jwtService.verify(token, { secret });
+
+    return result;
   }
 
   async hashData(data: string) {
