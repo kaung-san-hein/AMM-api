@@ -1,6 +1,11 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AuthDto } from './dto';
+import { AuthDto, SignupDto } from './dto';
 import * as bcrypt from 'bcrypt';
 import { Tokens } from './types';
 import { JwtService } from '@nestjs/jwt';
@@ -12,27 +17,38 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async signupLocal(data: AuthDto): Promise<Tokens> {
-    const hashPassword = await this.hashData(data.password);
+  async signupLocal(data: SignupDto): Promise<Tokens> {
+    try {
+      const hashPassword = await this.hashData(data.password);
 
-    const newUser = await this.prisma.user.create({
-      data: {
-        email: data.email,
-        password: hashPassword,
-      },
-    });
+      const newUser = await this.prisma.user.create({
+        data: {
+          name: data.name,
+          phone_no: data.phoneNo,
+          password: hashPassword,
+        },
+      });
 
-    const tokens = await this.getToken(newUser.id, newUser.email);
+      const tokens = await this.getToken(newUser.id);
 
-    await this.updateRefreshToken(newUser.id, tokens.refresh_token);
+      await this.updateRefreshToken(newUser.id, tokens.refresh_token);
 
-    return tokens;
+      return tokens;
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new BadRequestException('Phone number already exists');
+      }
+
+      throw new InternalServerErrorException(
+        'Signup failed. Please try again later.',
+      );
+    }
   }
 
   async signinLocal(data: AuthDto): Promise<Tokens> {
     const user = await this.prisma.user.findUnique({
       where: {
-        email: data.email,
+        phone_no: data.phoneNo,
       },
     });
 
@@ -42,7 +58,7 @@ export class AuthService {
 
     if (!passwordMatch) throw new ForbiddenException('Access Denied');
 
-    const tokens = await this.getToken(user.id, user.email);
+    const tokens = await this.getToken(user.id);
 
     await this.updateRefreshToken(user.id, tokens.refresh_token);
 
@@ -70,13 +86,17 @@ export class AuthService {
       },
     });
 
-    if (!user || !user.refreshToken) throw new ForbiddenException('Access Denied');
+    if (!user || !user.refreshToken)
+      throw new ForbiddenException('Access Denied');
 
-    const refreshTokenMatch = await bcrypt.compare(refreshToken, user.refreshToken);
+    const refreshTokenMatch = await bcrypt.compare(
+      refreshToken,
+      user.refreshToken,
+    );
 
     if (!refreshTokenMatch) throw new ForbiddenException('Access Denied');
 
-    const tokens = await this.getToken(user.id, user.email);
+    const tokens = await this.getToken(user.id);
 
     await this.updateRefreshToken(user.id, tokens.refresh_token);
 
@@ -87,12 +107,11 @@ export class AuthService {
     return await bcrypt.hash(data, 10);
   }
 
-  async getToken(userId: number, email: string): Promise<Tokens> {
+  async getToken(userId: number): Promise<Tokens> {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
         {
           sub: userId,
-          email,
         },
         {
           secret: 'access_token_secret',
@@ -102,7 +121,6 @@ export class AuthService {
       this.jwtService.signAsync(
         {
           sub: userId,
-          email,
         },
         {
           secret: 'refresh-token-secret',
