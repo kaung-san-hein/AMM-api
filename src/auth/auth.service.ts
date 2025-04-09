@@ -65,7 +65,14 @@ export class AuthService {
 
     await this.updateRefreshToken(user.id, tokens.refresh_token);
 
-    return tokens;
+    const response = {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      name: user.name,
+      phone_no: user.phone_no,
+    };
+
+    return response;
   }
 
   async logout(userId: number) {
@@ -117,6 +124,17 @@ export class AuthService {
     return result;
   }
 
+  async me(id: number) {
+    const result = await this.prisma.user.findUnique({
+      where: { id },
+      include: { role: true },
+    });
+    if (!result) {
+      throw new NotFoundException('User not found');
+    }
+    return result;
+  }
+
   async verifyToken(token: string) {
     const secret = this.config.get<string>('ACCESS_TOKEN_SECRET');
 
@@ -137,7 +155,7 @@ export class AuthService {
         },
         {
           secret: this.config.get<string>('ACCESS_TOKEN_SECRET'),
-          expiresIn: 60 * 15,
+          expiresIn: 60 * 60 * 24 * 7,
         },
       ),
       this.jwtService.signAsync(
