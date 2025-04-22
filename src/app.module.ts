@@ -8,6 +8,7 @@ import { AccessTokenGuard } from './common/guards';
 import { ConfigModule } from '@nestjs/config';
 import { RoleModule } from './role/role.module';
 import { CurrentUserMiddleware } from './common/middlewares/currentUser.middleware';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { CurrentUserMiddleware } from './common/middlewares/currentUser.middlewa
     AuthModule,
     PrismaModule,
     RoleModule,
+    CategoryModule,
   ],
   controllers: [AppController],
   providers: [
