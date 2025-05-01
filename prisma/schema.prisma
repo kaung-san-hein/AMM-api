@@ -47,5 +47,25 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  products Product[]
+
   @@map("categories")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  category_id Int
+  size        String
+  description String
+  net_weight  String
+  kg          Float
+  made_in     String
+  price       Float
+  stock       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category Category? @relation(fields: [category_id], references: [id], onDelete: Cascade)
+
+  @@map("products")
 }

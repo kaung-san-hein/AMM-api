@@ -9,6 +9,7 @@ import { ConfigModule } from '@nestjs/config';
 import { RoleModule } from './role/role.module';
 import { CurrentUserMiddleware } from './common/middlewares/currentUser.middleware';
 import { CategoryModule } from './category/category.module';
+import { ProductModule } from './product/product.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { CategoryModule } from './category/category.module';
     PrismaModule,
     RoleModule,
     CategoryModule,
+    ProductModule,
   ],
   controllers: [AppController],
   providers: [
