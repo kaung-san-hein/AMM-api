@@ -51,6 +51,9 @@ export class ProductService {
   async findOne(id: number) {
     const result = await this.prisma.product.findUnique({
       where: { id },
+      include: {
+        category: true,
+      },
     });
     if (!result) {
       throw new NotFoundException('Product not found');
@@ -68,6 +71,7 @@ export class ProductService {
 
     const updatedProduct = await this.prisma.product.update({
       where: { id },
+      include: { category: true },
       data: updateProductDto,
     });
 
