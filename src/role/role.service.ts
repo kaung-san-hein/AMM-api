@@ -7,6 +7,7 @@ import {
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Unique_Error_Code } from 'src/common/constants';
 
 @Injectable()
 export class RoleService {
@@ -22,7 +23,7 @@ export class RoleService {
 
       return newRole;
     } catch (error) {
-      if (error.code === 'P2002') {
+      if (error.code === Unique_Error_Code) {
         throw new BadRequestException('Role name has already exists');
       }
 
@@ -64,7 +65,7 @@ export class RoleService {
 
       return updatedRole;
     } catch (error) {
-      if (error.code === 'P2002') {
+      if (error.code === Unique_Error_Code) {
         throw new BadRequestException('Role name has already exists');
       }
 

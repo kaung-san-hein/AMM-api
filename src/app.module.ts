@@ -10,6 +10,7 @@ import { RoleModule } from './role/role.module';
 import { CurrentUserMiddleware } from './common/middlewares/currentUser.middleware';
 import { CategoryModule } from './category/category.module';
 import { ProductModule } from './product/product.module';
+import { CustomerModule } from './customer/customer.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ProductModule } from './product/product.module';
     RoleModule,
     CategoryModule,
     ProductModule,
+    CustomerModule,
   ],
   controllers: [AppController],
   providers: [
