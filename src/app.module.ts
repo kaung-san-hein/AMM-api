@@ -11,6 +11,7 @@ import { CurrentUserMiddleware } from './common/middlewares/currentUser.middlewa
 import { CategoryModule } from './category/category.module';
 import { ProductModule } from './product/product.module';
 import { CustomerModule } from './customer/customer.module';
+import { CustomerInvoiceModule } from './customer_invoice/customer_invoice.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CustomerModule } from './customer/customer.module';
     CategoryModule,
     ProductModule,
     CustomerModule,
+    CustomerInvoiceModule,
   ],
   controllers: [AppController],
   providers: [

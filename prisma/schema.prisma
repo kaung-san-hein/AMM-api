@@ -65,6 +65,8 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  customer_invoice_items CustomerInvoiceItem[]
+
   category Category? @relation(fields: [category_id], references: [id], onDelete: Cascade)
 
   @@map("products")
@@ -78,5 +80,37 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  customer_invoices CustomerInvoice[]
+
   @@map("customers")
+}
+
+model CustomerInvoice {
+  id          Int      @id @default(autoincrement())
+  customer_id Int
+  date        DateTime
+  total       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  customer_invoice_items CustomerInvoiceItem[]
+
+  customer Customer @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+
+  @@map("customer_invoices")
+}
+
+model CustomerInvoiceItem {
+  id                  Int      @id @default(autoincrement())
+  customer_invoice_id Int
+  product_id          Int?
+  quantity            Int
+  price               Float
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  customer_invoice CustomerInvoice @relation(fields: [customer_invoice_id], references: [id], onDelete: Cascade)
+  product          Product?        @relation(fields: [product_id], references: [id], onDelete: SetNull)
+
+  @@map("customer_invoice_items")
 }
