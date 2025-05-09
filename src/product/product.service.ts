@@ -31,6 +31,13 @@ export class ProductService {
   async findAll(page: number, limit: number) {
     const offset = (page - 1) * limit;
 
+    if (!limit) {
+      const products = await this.prisma.product.findMany({
+        include: { category: true },
+      });
+      return { products };
+    }
+
     const [total, products] = await this.prisma.$transaction([
       this.prisma.product.count(),
       this.prisma.product.findMany({

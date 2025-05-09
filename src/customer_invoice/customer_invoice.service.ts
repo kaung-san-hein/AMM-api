@@ -53,6 +53,7 @@ export class CustomerInvoiceService {
         },
         include: {
           customer_invoice_items: true,
+          customer: true,
         },
       });
 
@@ -85,6 +86,7 @@ export class CustomerInvoiceService {
         take: limit,
         include: {
           customer_invoice_items: true,
+          customer: true,
         },
       }),
     ]);
@@ -100,6 +102,7 @@ export class CustomerInvoiceService {
       where: { id },
       include: {
         customer_invoice_items: true,
+        customer: true,
       },
     });
     if (!result) {

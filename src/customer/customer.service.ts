@@ -34,6 +34,11 @@ export class CustomerService {
   async findAll(page: number, limit: number) {
     const offset = (page - 1) * limit;
 
+    if (!limit) {
+      const customers = await this.prisma.customer.findMany();
+      return { customers };
+    }
+
     const [total, customers] = await this.prisma.$transaction([
       this.prisma.customer.count(),
       this.prisma.customer.findMany({

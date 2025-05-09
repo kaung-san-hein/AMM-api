@@ -30,8 +30,8 @@ export class CustomerController {
 
   @Get()
   findAll(
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '5',
+    @Query('page') page: string,
+    @Query('limit') limit: string,
   ) {
     return this.customerService.findAll(+page, +limit);
   }
