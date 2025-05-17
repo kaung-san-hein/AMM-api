@@ -12,6 +12,7 @@ import { CategoryModule } from './category/category.module';
 import { ProductModule } from './product/product.module';
 import { CustomerModule } from './customer/customer.module';
 import { CustomerInvoiceModule } from './customer_invoice/customer_invoice.module';
+import { SupplierModule } from './supplier/supplier.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CustomerInvoiceModule } from './customer_invoice/customer_invoice.modul
     ProductModule,
     CustomerModule,
     CustomerInvoiceModule,
+    SupplierModule,
   ],
   controllers: [AppController],
   providers: [
