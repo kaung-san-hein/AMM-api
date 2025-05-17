@@ -66,6 +66,7 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   customer_invoice_items CustomerInvoiceItem[]
+  supplier_invoice_items SupplierInvoiceItem[]
 
   category Category? @relation(fields: [category_id], references: [id], onDelete: Cascade)
 
@@ -123,5 +124,37 @@ model Supplier {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  supplier_invoices SupplierInvoice[]
+
   @@map("suppliers")
+}
+
+model SupplierInvoice {
+  id          Int      @id @default(autoincrement())
+  supplier_id Int
+  date        DateTime
+  total       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  supplier_invoice_items SupplierInvoiceItem[]
+
+  supplier Supplier @relation(fields: [supplier_id], references: [id], onDelete: Cascade)
+
+  @@map("supplier_invoices")
+}
+
+model SupplierInvoiceItem {
+  id                  Int      @id @default(autoincrement())
+  supplier_invoice_id Int
+  product_id          Int?
+  quantity            Int
+  price               Float
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  supplier_invoice SupplierInvoice @relation(fields: [supplier_invoice_id], references: [id], onDelete: Cascade)
+  product          Product?        @relation(fields: [product_id], references: [id], onDelete: SetNull)
+
+  @@map("supplier_invoice_items")
 }
