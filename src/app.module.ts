@@ -14,6 +14,7 @@ import { CustomerModule } from './customer/customer.module';
 import { CustomerInvoiceModule } from './customer_invoice/customer_invoice.module';
 import { SupplierModule } from './supplier/supplier.module';
 import { SupplierInvoiceModule } from './supplier_invoice/supplier_invoice.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { SupplierInvoiceModule } from './supplier_invoice/supplier_invoice.modul
     CustomerInvoiceModule,
     SupplierModule,
     SupplierInvoiceModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [
