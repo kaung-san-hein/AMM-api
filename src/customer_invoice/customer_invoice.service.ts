@@ -84,8 +84,15 @@ export class CustomerInvoiceService {
       this.prisma.customerInvoice.findMany({
         skip: offset,
         take: limit,
+        orderBy: {
+          id: 'desc',
+        },
         include: {
-          customer_invoice_items: true,
+          customer_invoice_items: {
+            include: {
+              product: true,
+            },
+          },
           customer: true,
         },
       }),

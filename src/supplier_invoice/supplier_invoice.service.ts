@@ -57,8 +57,19 @@ export class SupplierInvoiceService {
       this.prisma.supplierInvoice.findMany({
         skip: offset,
         take: limit,
+        orderBy: {
+          id: 'desc',
+        },
         include: {
-          supplier_invoice_items: true,
+          supplier_invoice_items: {
+            include: {
+              product: {
+                include: {
+                  category: true,
+                },
+              },
+            },
+          },
           supplier: true,
         },
       }),
@@ -74,7 +85,15 @@ export class SupplierInvoiceService {
     const result = await this.prisma.supplierInvoice.findUnique({
       where: { id },
       include: {
-        supplier_invoice_items: true,
+        supplier_invoice_items: {
+          include: {
+            product: {
+              include: {
+                category: true,
+              },
+            },
+          },
+        },
         supplier: true,
       },
     });
