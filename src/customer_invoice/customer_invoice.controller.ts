@@ -22,6 +22,11 @@ export class CustomerInvoiceController {
     private readonly customerInvoiceService: CustomerInvoiceService,
   ) {}
 
+  @Get('/most-sale-products')
+  getMostSaleProducts() {
+    return this.customerInvoiceService.mostSaleProducts();
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createCustomerInvoiceDto: CreateCustomerInvoiceDto) {

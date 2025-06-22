@@ -32,8 +32,11 @@ export class ProductController {
   findAll(
     @Query('page') page: string,
     @Query('limit') limit: string,
+    @Query('stock') stock?: string,
   ) {
-    return this.productService.findAll(+page, +limit);
+    const maxStock = stock !== undefined ? +stock : undefined;
+
+    return this.productService.findAll(+page, +limit, maxStock);
   }
 
   @Get(':id')

@@ -130,4 +130,40 @@ export class CustomerInvoiceService {
       where: { id },
     });
   }
+
+  async mostSaleProducts() {
+    const topSales = await this.prisma.customerInvoiceItem.groupBy({
+      by: ['product_id'],
+      where: {
+        product_id: {
+          not: null,
+        },
+      },
+      _sum: {
+        quantity: true,
+      },
+      orderBy: {
+        _sum: {
+          quantity: 'desc',
+        },
+      },
+      take: 10,
+    });
+
+    const productIds = topSales.map((item) => item.product_id!);
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        id: { in: productIds },
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    return topSales.map((item) => ({
+      product: products.find((p) => p.id === item.product_id),
+      totalSold: item._sum.quantity,
+    }));
+  }
 }

@@ -28,21 +28,28 @@ export class ProductService {
     }
   }
 
-  async findAll(page: number, limit: number) {
+  async findAll(page: number, limit: number, maxStock?: number) {
     const offset = (page - 1) * limit;
+
+    const where =
+      maxStock !== undefined ? { stock: { lt: maxStock } } : undefined;
 
     if (!limit) {
       const products = await this.prisma.product.findMany({
+        where,
         include: { category: true },
       });
       return { products };
     }
 
     const [total, products] = await this.prisma.$transaction([
-      this.prisma.product.count(),
+      this.prisma.product.count({
+        where,
+      }),
       this.prisma.product.findMany({
         skip: offset,
         take: limit,
+        where,
         include: {
           category: true,
         },
