@@ -33,10 +33,11 @@ export class ProductController {
     @Query('page') page: string,
     @Query('limit') limit: string,
     @Query('stock') stock?: string,
+    @Query('search') search?: string,
   ) {
     const maxStock = stock !== undefined ? +stock : undefined;
 
-    return this.productService.findAll(+page, +limit, maxStock);
+    return this.productService.findAll(+page, +limit, maxStock, search);
   }
 
   @Get(':id')

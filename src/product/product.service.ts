@@ -28,11 +28,45 @@ export class ProductService {
     }
   }
 
-  async findAll(page: number, limit: number, maxStock?: number) {
+  async findAll(
+    page: number,
+    limit: number,
+    maxStock?: number,
+    search?: string,
+  ) {
     const offset = (page - 1) * limit;
 
-    const where =
-      maxStock !== undefined ? { stock: { lt: maxStock } } : undefined;
+    const andConditions: any[] = [];
+
+    if (maxStock !== undefined) {
+      andConditions.push({ stock: { lt: maxStock } });
+    }
+
+    if (search) {
+      const searchTerms = search.split(' ').filter((term) => term.length > 0);
+
+      const searchOrConditions: any[] = [];
+
+      searchTerms.forEach((term) => {
+        const searchCondition = {
+          mode: 'insensitive',
+          contains: term,
+        };
+        searchOrConditions.push(
+          { size: searchCondition },
+          { category: { name: searchCondition } },
+        );
+      });
+
+      if (searchOrConditions.length > 0) {
+        andConditions.push({ OR: searchOrConditions });
+      }
+    }
+
+    let where: any = undefined;
+    if (andConditions.length > 0) {
+      where = { AND: andConditions };
+    }
 
     if (!limit) {
       const products = await this.prisma.product.findMany({
