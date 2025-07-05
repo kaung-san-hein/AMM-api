@@ -22,6 +22,12 @@ export class SupplierInvoiceController {
     private readonly supplierInvoiceService: SupplierInvoiceService,
   ) {}
 
+  @Get('/report')
+  @HttpCode(HttpStatus.OK)
+  getReport() {
+    return this.supplierInvoiceService.getReport();
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createSupplierInvoiceDto: CreateSupplierInvoiceDto) {

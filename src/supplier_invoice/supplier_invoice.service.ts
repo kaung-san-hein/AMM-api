@@ -115,4 +115,71 @@ export class SupplierInvoiceService {
       where: { id },
     });
   }
+
+  async getReport() {
+    // Get current year for yearly data
+    const currentYear = new Date().getFullYear();
+    
+    // Get monthly purchases for current year
+    const monthlyPurchases = await this.prisma.supplierInvoice.groupBy({
+      by: ['date'],
+      where: {
+        date: {
+          gte: new Date(currentYear, 0, 1), // January 1st of current year
+          lte: new Date(currentYear, 11, 31), // December 31st of current year
+        },
+      },
+      _sum: {
+        total: true,
+      },
+    });
+
+    // Get yearly purchases for last 5 years
+    const yearlyPurchases = await this.prisma.supplierInvoice.groupBy({
+      by: ['date'],
+      where: {
+        date: {
+          gte: new Date(currentYear - 4, 0, 1), // 5 years ago
+          lte: new Date(currentYear, 11, 31), // Current year end
+        },
+      },
+      _sum: {
+        total: true,
+      },
+    });
+
+    // Process monthly data
+    const monthlyData = new Array(12).fill(0);
+    monthlyPurchases.forEach((purchase) => {
+      const month = new Date(purchase.date).getMonth();
+      monthlyData[month] += purchase._sum.total || 0;
+    });
+
+    // Process yearly data
+    const yearlyData = new Map<number, number>();
+    yearlyPurchases.forEach((purchase) => {
+      const year = new Date(purchase.date).getFullYear();
+      const existing = yearlyData.get(year) || 0;
+      yearlyData.set(year, existing + (purchase._sum.total || 0));
+    });
+
+    // Convert yearly data to sorted array
+    const yearlyDataArray = Array.from(yearlyData.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([year, total]) => ({ year, total }));
+
+    return {
+      monthly: {
+        labels: [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ],
+        data: monthlyData,
+      },
+      yearly: {
+        labels: yearlyDataArray.map(item => item.year.toString()),
+        data: yearlyDataArray.map(item => item.total),
+      },
+    };
+  }
 }

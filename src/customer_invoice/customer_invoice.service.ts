@@ -132,7 +132,7 @@ export class CustomerInvoiceService {
   }
 
   async mostSaleProducts() {
-    const topSales = await this.prisma.customerInvoiceItem.groupBy({
+    const topSalesByCategory = await this.prisma.customerInvoiceItem.groupBy({
       by: ['product_id'],
       where: {
         product_id: {
@@ -142,16 +142,10 @@ export class CustomerInvoiceService {
       _sum: {
         quantity: true,
       },
-      orderBy: {
-        _sum: {
-          quantity: 'desc',
-        },
-      },
-      take: 10,
     });
 
-    const productIds = topSales.map((item) => item.product_id!);
-
+    const productIds = topSalesByCategory.map((item) => item.product_id!);
+    
     const products = await this.prisma.product.findMany({
       where: {
         id: { in: productIds },
@@ -161,9 +155,94 @@ export class CustomerInvoiceService {
       },
     });
 
-    return topSales.map((item) => ({
-      product: products.find((p) => p.id === item.product_id),
-      totalSold: item._sum.quantity,
-    }));
+    const categorySales = new Map<number, { category: any; totalSold: number }>();
+    
+    topSalesByCategory.forEach((item) => {
+      const product = products.find((p) => p.id === item.product_id);
+      if (product && product.category) {
+        const categoryId = product.category.id;
+        const existing = categorySales.get(categoryId);
+        
+        if (existing) {
+          existing.totalSold += item._sum.quantity || 0;
+        } else {
+          categorySales.set(categoryId, {
+            category: product.category,
+            totalSold: item._sum.quantity || 0,
+          });
+        }
+      }
+    });
+
+    const result = Array.from(categorySales.values()).sort((a, b) => b.totalSold - a.totalSold);
+
+    return result.slice(0, 7);
+  }
+
+  async getReport() {
+    // Get current year for yearly data
+    const currentYear = new Date().getFullYear();
+    
+    // Get monthly sales for current year
+    const monthlySales = await this.prisma.customerInvoice.groupBy({
+      by: ['date'],
+      where: {
+        date: {
+          gte: new Date(currentYear, 0, 1), // January 1st of current year
+          lte: new Date(currentYear, 11, 31), // December 31st of current year
+        },
+      },
+      _sum: {
+        total: true,
+      },
+    });
+
+    // Get yearly sales for last 5 years
+    const yearlySales = await this.prisma.customerInvoice.groupBy({
+      by: ['date'],
+      where: {
+        date: {
+          gte: new Date(currentYear - 4, 0, 1), // 5 years ago
+          lte: new Date(currentYear, 11, 31), // Current year end
+        },
+      },
+      _sum: {
+        total: true,
+      },
+    });
+
+    // Process monthly data
+    const monthlyData = new Array(12).fill(0);
+    monthlySales.forEach((sale) => {
+      const month = new Date(sale.date).getMonth();
+      monthlyData[month] += sale._sum.total || 0;
+    });
+
+    // Process yearly data
+    const yearlyData = new Map<number, number>();
+    yearlySales.forEach((sale) => {
+      const year = new Date(sale.date).getFullYear();
+      const existing = yearlyData.get(year) || 0;
+      yearlyData.set(year, existing + (sale._sum.total || 0));
+    });
+
+    // Convert yearly data to sorted array
+    const yearlyDataArray = Array.from(yearlyData.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([year, total]) => ({ year, total }));
+
+    return {
+      monthly: {
+        labels: [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ],
+        data: monthlyData,
+      },
+      yearly: {
+        labels: yearlyDataArray.map(item => item.year.toString()),
+        data: yearlyDataArray.map(item => item.total),
+      },
+    };
   }
 }
