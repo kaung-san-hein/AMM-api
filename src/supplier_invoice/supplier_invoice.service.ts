@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateSupplierInvoiceDto } from './dto/create-supplier_invoice.dto';
+import { CreateSupplierInvoiceDto, SupplierInvoiceStatus } from './dto/create-supplier_invoice.dto';
+import { UpdateSupplierInvoiceDto } from './dto/update-supplier_invoice.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -10,7 +11,7 @@ export class SupplierInvoiceService {
     const { supplier_id, date, total, items } = createSupplierInvoiceDto;
 
     return await this.prisma.$transaction(async (prisma) => {
-      // Step 1: Create invoice with items
+      // Create invoice with items (no stock update on creation)
       const newInvoice = await prisma.supplierInvoice.create({
         data: {
           supplier_id,
@@ -30,21 +31,6 @@ export class SupplierInvoiceService {
         },
       });
 
-      // Step 2: Bulk update product stocks using `updateMany`
-      const updatePromises = items.map((item) =>
-        prisma.product.update({
-          where: { id: item.product_id },
-          data: {
-            stock: {
-              increment: item.quantity,
-            },
-          },
-        }),
-      );
-
-      // Execute all updates in parallel
-      await Promise.all(updatePromises);
-
       return newInvoice;
     });
   }
@@ -53,8 +39,15 @@ export class SupplierInvoiceService {
     const offset = (page - 1) * limit;
 
     const [total, supplier_invoices] = await this.prisma.$transaction([
-      this.prisma.supplierInvoice.count(),
+      this.prisma.supplierInvoice.count({
+        where: {
+          status: SupplierInvoiceStatus.PAID,
+        },
+      }),
       this.prisma.supplierInvoice.findMany({
+        where: {
+          status: SupplierInvoiceStatus.PAID,
+        },
         skip: offset,
         take: limit,
         orderBy: {
@@ -116,6 +109,109 @@ export class SupplierInvoiceService {
     });
   }
 
+  async getOrders(page: number, limit: number) {
+    const offset = (page - 1) * limit;
+
+    const [total, supplier_invoices] = await this.prisma.$transaction([
+      this.prisma.supplierInvoice.count({
+        where: {
+          status: {
+            in: [SupplierInvoiceStatus.PENDING, SupplierInvoiceStatus.CANCELLED],
+          },
+        },
+      }),
+      this.prisma.supplierInvoice.findMany({
+        where: {
+          status: {
+            in: [SupplierInvoiceStatus.PENDING, SupplierInvoiceStatus.CANCELLED],
+          },
+        },
+        skip: offset,
+        take: limit,
+        orderBy: {
+          id: 'desc',
+        },
+        include: {
+          supplier_invoice_items: {
+            include: {
+              product: {
+                include: {
+                  category: true,
+                },
+              },
+            },
+          },
+          supplier: true,
+        },
+      }),
+    ]);
+
+    return {
+      total,
+      supplier_invoices,
+    };
+  }
+
+  async updateOrder(id: number, updateSupplierInvoiceDto: UpdateSupplierInvoiceDto) {
+    const existingInvoice = await this.prisma.supplierInvoice.findUnique({
+      where: { id },
+      include: {
+        supplier_invoice_items: true,
+      },
+    });
+    
+    if (!existingInvoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    return await this.prisma.$transaction(async (prisma) => {
+      // Update the invoice status
+      const updatedInvoice = await prisma.supplierInvoice.update({
+        where: { id },
+        data: {
+          status: updateSupplierInvoiceDto.status,
+        },
+        include: {
+          supplier_invoice_items: {
+            include: {
+              product: {
+                include: {
+                  category: true,
+                },
+              },
+            },
+          },
+          supplier: true,
+        },
+      });
+
+      // If status is being changed to PAID, increment stock
+      if (updateSupplierInvoiceDto.status === SupplierInvoiceStatus.PAID && 
+          existingInvoice.status !== SupplierInvoiceStatus.PAID) {
+        
+        // Get all items from the invoice
+        const items = existingInvoice.supplier_invoice_items;
+        
+        // Update stock for all products in the invoice
+        const updatePromises = items.map((item) =>
+          prisma.product.update({
+            where: { id: item.product_id! },
+            data: {
+              stock: {
+                increment: item.quantity,
+              },
+            },
+          }),
+        );
+
+        // Execute all updates in parallel
+        await Promise.all(updatePromises);
+      }
+
+      return updatedInvoice;
+    });
+  }
+
   async getReport() {
     // Get current year for yearly data
     const currentYear = new Date().getFullYear();
@@ -124,6 +220,7 @@ export class SupplierInvoiceService {
     const monthlyPurchases = await this.prisma.supplierInvoice.groupBy({
       by: ['date'],
       where: {
+        status: SupplierInvoiceStatus.PAID,
         date: {
           gte: new Date(currentYear, 0, 1), // January 1st of current year
           lte: new Date(currentYear, 11, 31), // December 31st of current year
@@ -138,6 +235,7 @@ export class SupplierInvoiceService {
     const yearlyPurchases = await this.prisma.supplierInvoice.groupBy({
       by: ['date'],
       where: {
+        status: SupplierInvoiceStatus.PAID,
         date: {
           gte: new Date(currentYear - 4, 0, 1), // 5 years ago
           lte: new Date(currentYear, 11, 31), // Current year end

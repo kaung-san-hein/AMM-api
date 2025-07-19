@@ -9,9 +9,11 @@ import {
   HttpStatus,
   HttpCode,
   Query,
+  Patch,
 } from '@nestjs/common';
 import { SupplierInvoiceService } from './supplier_invoice.service';
 import { CreateSupplierInvoiceDto } from './dto/create-supplier_invoice.dto';
+import { UpdateSupplierInvoiceDto } from './dto/update-supplier_invoice.dto';
 import { AuthorizeGuard } from 'src/common/guards/authorization.guard';
 import { RoleName } from 'src/role/dto';
 
@@ -26,6 +28,21 @@ export class SupplierInvoiceController {
   @HttpCode(HttpStatus.OK)
   getReport() {
     return this.supplierInvoiceService.getReport();
+  }
+
+  @Get('/orders')
+  @HttpCode(HttpStatus.OK)
+  getOrders(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '5',
+  ) {
+    return this.supplierInvoiceService.getOrders(+page, +limit);
+  }
+
+  @Patch('/orders/:id')
+  @HttpCode(HttpStatus.CREATED)
+  updateOrder(@Param('id') id: string, @Body() updateSupplierInvoiceDto: UpdateSupplierInvoiceDto) {
+    return this.supplierInvoiceService.updateOrder(+id, updateSupplierInvoiceDto);
   }
 
   @Post()

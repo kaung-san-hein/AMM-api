@@ -7,6 +7,7 @@ import { RoleName } from 'src/role/dto';
 @UseGuards(AuthorizeGuard(RoleName.ADMIN))
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
+  
   @Get('total')
   getAllTotal() {
     return this.dashboardService.getAllTotal();

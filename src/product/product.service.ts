@@ -28,6 +28,16 @@ export class ProductService {
     }
   }
 
+  async getStockAlert() {
+    const result = await this.prisma.product.count({
+      where: {
+        stock: { lt: 50 },
+      },
+    });
+
+    return result;
+  }
+
   async findAll(
     page: number,
     limit: number,

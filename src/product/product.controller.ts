@@ -22,6 +22,12 @@ import { RoleName } from 'src/role/dto';
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
+  @Get('stock-alert')
+  @HttpCode(HttpStatus.OK)
+  getStockAlert() {
+    return this.productService.getStockAlert();
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createProductDto: CreateProductDto) {

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { SupplierInvoiceStatus } from 'src/supplier_invoice/dto/create-supplier_invoice.dto';
 
 @Injectable()
 export class DashboardService {
@@ -14,6 +15,9 @@ export class DashboardService {
           },
         }),
         this.prisma.supplierInvoice.aggregate({
+          where: {
+            status: SupplierInvoiceStatus.PAID,
+          },
           _sum: {
             total: true,
           },
@@ -22,7 +26,7 @@ export class DashboardService {
           _count: {
             id: true,
           },
-          where: { stock: { lt: 100 } },
+          where: { stock: { lt: 50 } },
         }),
       ]);
 

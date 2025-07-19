@@ -17,6 +17,7 @@ export class CategoryService {
       const newCategory = await this.prisma.category.create({
         data: {
           name: createCategoryDto.name,
+          description: createCategoryDto.description,
         },
       });
 
@@ -59,6 +60,7 @@ export class CategoryService {
         where: { id },
         data: {
           name: updateCategoryDto.name,
+          description: updateCategoryDto.description,
         },
       });
 

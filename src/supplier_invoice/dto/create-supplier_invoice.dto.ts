@@ -7,6 +7,12 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+export enum SupplierInvoiceStatus {
+  PENDING = 'pending',
+  CANCELLED = 'cancelled',
+  PAID = 'paid',
+}
+
 export class SupplierInvoiceItem {
   @IsNotEmpty()
   @IsNumber()

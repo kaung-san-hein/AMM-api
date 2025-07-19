@@ -131,8 +131,57 @@ export class CustomerInvoiceService {
     });
   }
 
+  // async mostSaleProducts() {
+  //   const topSalesByCategory = await this.prisma.customerInvoiceItem.groupBy({
+  //     by: ['product_id'],
+  //     where: {
+  //       product_id: {
+  //         not: null,
+  //       },
+  //     },
+  //     _sum: {
+  //       quantity: true,
+  //     },
+  //   });
+
+  //   const productIds = topSalesByCategory.map((item) => item.product_id!);
+    
+  //   const products = await this.prisma.product.findMany({
+  //     where: {
+  //       id: { in: productIds },
+  //     },
+  //     include: {
+  //       category: true,
+  //     },
+  //   });
+
+  //   const categorySales = new Map<number, { category: any; totalSold: number }>();
+    
+  //   topSalesByCategory.forEach((item) => {
+  //     const product = products.find((p) => p.id === item.product_id);
+  //     if (product && product.category) {
+  //       const categoryId = product.category.id;
+  //       const existing = categorySales.get(categoryId);
+        
+  //       if (existing) {
+  //         existing.totalSold += item._sum.quantity || 0;
+  //       } else {
+  //         categorySales.set(categoryId, {
+  //           category: product.category,
+  //           totalSold: item._sum.quantity || 0,
+  //         });
+  //       }
+  //     }
+  //   });
+
+  //   const result = Array.from(categorySales.values()).sort((a, b) => b.totalSold - a.totalSold);
+
+  //   return result.slice(0, 7);
+  // }
+
   async mostSaleProducts() {
-    const topSalesByCategory = await this.prisma.customerInvoiceItem.groupBy({
+    // Get sales data grouped by year, month, and product
+    const salesData = await this.prisma.customerInvoiceItem.groupBy({
       by: ['product_id'],
       where: {
         product_id: {
@@ -141,42 +190,122 @@ export class CustomerInvoiceService {
       },
       _sum: {
         quantity: true,
+        price: true,
       },
     });
 
-    const productIds = topSalesByCategory.map((item) => item.product_id!);
-    
-    const products = await this.prisma.product.findMany({
+    // Get detailed sales with date information
+    const detailedSales = await this.prisma.customerInvoiceItem.findMany({
       where: {
-        id: { in: productIds },
+        product_id: {
+          not: null,
+        },
       },
       include: {
-        category: true,
+        product: {
+          include: {
+            category: true,
+          },
+        },
+        customer_invoice: {
+          select: {
+            date: true,
+          },
+        },
+      },
+      orderBy: {
+        customer_invoice: {
+          date: 'desc',
+        },
       },
     });
 
-    const categorySales = new Map<number, { category: any; totalSold: number }>();
-    
-    topSalesByCategory.forEach((item) => {
-      const product = products.find((p) => p.id === item.product_id);
-      if (product && product.category) {
-        const categoryId = product.category.id;
-        const existing = categorySales.get(categoryId);
-        
-        if (existing) {
-          existing.totalSold += item._sum.quantity || 0;
-        } else {
-          categorySales.set(categoryId, {
-            category: product.category,
-            totalSold: item._sum.quantity || 0,
-          });
-        }
+    // Process the data to group by year, month, and product
+    const salesByYearMonth = new Map<string, Map<string, Map<number, {
+      product: any;
+      quantity: number;
+      totalAmount: number;
+      year: number;
+      month: number;
+    }>>>();
+
+    detailedSales.forEach((sale) => {
+      if (!sale.product || !sale.customer_invoice) return;
+
+      const date = new Date(sale.customer_invoice.date);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1; // getMonth() returns 0-11
+      const yearKey = year.toString();
+      const monthKey = month.toString().padStart(2, '0');
+      const productId = sale.product_id!;
+
+      // Initialize year if not exists
+      if (!salesByYearMonth.has(yearKey)) {
+        salesByYearMonth.set(yearKey, new Map());
       }
+
+      // Initialize month if not exists
+      const yearData = salesByYearMonth.get(yearKey)!;
+      if (!yearData.has(monthKey)) {
+        yearData.set(monthKey, new Map());
+      }
+
+      // Initialize product if not exists
+      const monthData = yearData.get(monthKey)!;
+      if (!monthData.has(productId)) {
+        monthData.set(productId, {
+          product: sale.product,
+          quantity: 0,
+          totalAmount: 0,
+          year,
+          month,
+        });
+      }
+
+      // Update product data
+      const productData = monthData.get(productId)!;
+      productData.quantity += sale.quantity;
+      productData.totalAmount += sale.quantity * sale.price;
     });
 
-    const result = Array.from(categorySales.values()).sort((a, b) => b.totalSold - a.totalSold);
+    // Convert to array format and sort
+    const result: Array<{
+      year: number;
+      month: number;
+      monthName: string;
+      product: any;
+      quantity: number;
+      totalAmount: number;
+    }> = [];
 
-    return result.slice(0, 7);
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    salesByYearMonth.forEach((yearData, yearKey) => {
+      yearData.forEach((monthData, monthKey) => {
+        monthData.forEach((productData) => {
+          result.push({
+            year: productData.year,
+            month: productData.month,
+            monthName: monthNames[productData.month - 1],
+            product: productData.product,
+            quantity: productData.quantity,
+            totalAmount: productData.totalAmount,
+          });
+        });
+      });
+    });
+
+    // Sort by year (desc), month (desc), and total amount (desc)
+    result.sort((a, b) => {
+      if (a.year !== b.year) return b.year - a.year;
+      if (a.month !== b.month) return b.month - a.month;
+      return b.totalAmount - a.totalAmount;
+    });
+
+    return result;
   }
 
   async getReport() {
