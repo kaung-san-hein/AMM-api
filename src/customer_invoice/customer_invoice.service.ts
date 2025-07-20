@@ -131,57 +131,8 @@ export class CustomerInvoiceService {
     });
   }
 
-  // async mostSaleProducts() {
-  //   const topSalesByCategory = await this.prisma.customerInvoiceItem.groupBy({
-  //     by: ['product_id'],
-  //     where: {
-  //       product_id: {
-  //         not: null,
-  //       },
-  //     },
-  //     _sum: {
-  //       quantity: true,
-  //     },
-  //   });
-
-  //   const productIds = topSalesByCategory.map((item) => item.product_id!);
-    
-  //   const products = await this.prisma.product.findMany({
-  //     where: {
-  //       id: { in: productIds },
-  //     },
-  //     include: {
-  //       category: true,
-  //     },
-  //   });
-
-  //   const categorySales = new Map<number, { category: any; totalSold: number }>();
-    
-  //   topSalesByCategory.forEach((item) => {
-  //     const product = products.find((p) => p.id === item.product_id);
-  //     if (product && product.category) {
-  //       const categoryId = product.category.id;
-  //       const existing = categorySales.get(categoryId);
-        
-  //       if (existing) {
-  //         existing.totalSold += item._sum.quantity || 0;
-  //       } else {
-  //         categorySales.set(categoryId, {
-  //           category: product.category,
-  //           totalSold: item._sum.quantity || 0,
-  //         });
-  //       }
-  //     }
-  //   });
-
-  //   const result = Array.from(categorySales.values()).sort((a, b) => b.totalSold - a.totalSold);
-
-  //   return result.slice(0, 7);
-  // }
-
-  async mostSaleProducts() {
-    // Get sales data grouped by year, month, and product
-    const salesData = await this.prisma.customerInvoiceItem.groupBy({
+  async mostSaleProductsByChart() {
+    const topSalesByCategory = await this.prisma.customerInvoiceItem.groupBy({
       by: ['product_id'],
       where: {
         product_id: {
@@ -190,10 +141,45 @@ export class CustomerInvoiceService {
       },
       _sum: {
         quantity: true,
-        price: true,
       },
     });
 
+    const productIds = topSalesByCategory.map((item) => item.product_id!);
+    
+    const products = await this.prisma.product.findMany({
+      where: {
+        id: { in: productIds },
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    const categorySales = new Map<number, { category: any; totalSold: number }>();
+    
+    topSalesByCategory.forEach((item) => {
+      const product = products.find((p) => p.id === item.product_id);
+      if (product && product.category) {
+        const categoryId = product.category.id;
+        const existing = categorySales.get(categoryId);
+        
+        if (existing) {
+          existing.totalSold += item._sum.quantity || 0;
+        } else {
+          categorySales.set(categoryId, {
+            category: product.category,
+            totalSold: item._sum.quantity || 0,
+          });
+        }
+      }
+    });
+
+    const result = Array.from(categorySales.values()).sort((a, b) => b.totalSold - a.totalSold);
+
+    return result.slice(0, 7);
+  }
+
+  async mostSaleProducts() {
     // Get detailed sales with date information
     const detailedSales = await this.prisma.customerInvoiceItem.findMany({
       where: {
@@ -220,9 +206,9 @@ export class CustomerInvoiceService {
       },
     });
 
-    // Process the data to group by year, month, and product
+    // Process the data to group by year, month, and category
     const salesByYearMonth = new Map<string, Map<string, Map<number, {
-      product: any;
+      category: any;
       quantity: number;
       totalAmount: number;
       year: number;
@@ -230,14 +216,14 @@ export class CustomerInvoiceService {
     }>>>();
 
     detailedSales.forEach((sale) => {
-      if (!sale.product || !sale.customer_invoice) return;
+      if (!sale.product || !sale.customer_invoice || !sale.product.category) return;
 
       const date = new Date(sale.customer_invoice.date);
       const year = date.getFullYear();
       const month = date.getMonth() + 1; // getMonth() returns 0-11
       const yearKey = year.toString();
       const monthKey = month.toString().padStart(2, '0');
-      const productId = sale.product_id!;
+      const categoryId = sale.product.category.id;
 
       // Initialize year if not exists
       if (!salesByYearMonth.has(yearKey)) {
@@ -250,11 +236,11 @@ export class CustomerInvoiceService {
         yearData.set(monthKey, new Map());
       }
 
-      // Initialize product if not exists
+      // Initialize category if not exists
       const monthData = yearData.get(monthKey)!;
-      if (!monthData.has(productId)) {
-        monthData.set(productId, {
-          product: sale.product,
+      if (!monthData.has(categoryId)) {
+        monthData.set(categoryId, {
+          category: sale.product.category,
           quantity: 0,
           totalAmount: 0,
           year,
@@ -262,10 +248,10 @@ export class CustomerInvoiceService {
         });
       }
 
-      // Update product data
-      const productData = monthData.get(productId)!;
-      productData.quantity += sale.quantity;
-      productData.totalAmount += sale.quantity * sale.price;
+      // Update category data
+      const categoryData = monthData.get(categoryId)!;
+      categoryData.quantity += sale.quantity;
+      categoryData.totalAmount += sale.quantity * sale.price;
     });
 
     // Convert to array format and sort
@@ -273,7 +259,7 @@ export class CustomerInvoiceService {
       year: number;
       month: number;
       monthName: string;
-      product: any;
+      category: any;
       quantity: number;
       totalAmount: number;
     }> = [];
@@ -285,14 +271,14 @@ export class CustomerInvoiceService {
 
     salesByYearMonth.forEach((yearData, yearKey) => {
       yearData.forEach((monthData, monthKey) => {
-        monthData.forEach((productData) => {
+        monthData.forEach((categoryData) => {
           result.push({
-            year: productData.year,
-            month: productData.month,
-            monthName: monthNames[productData.month - 1],
-            product: productData.product,
-            quantity: productData.quantity,
-            totalAmount: productData.totalAmount,
+            year: categoryData.year,
+            month: categoryData.month,
+            monthName: monthNames[categoryData.month - 1],
+            category: categoryData.category,
+            quantity: categoryData.quantity,
+            totalAmount: categoryData.totalAmount,
           });
         });
       });

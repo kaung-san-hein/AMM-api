@@ -27,6 +27,11 @@ export class CustomerInvoiceController {
     return this.customerInvoiceService.mostSaleProducts();
   }
 
+  @Get('/most-sale-products-by-chart')
+  getMostSaleProductsByChart() {
+    return this.customerInvoiceService.mostSaleProductsByChart();
+  }
+
   @Get('/report')
   @HttpCode(HttpStatus.OK)
   getReport() {
