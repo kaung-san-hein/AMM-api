@@ -82,6 +82,11 @@ export class ProductService {
       const products = await this.prisma.product.findMany({
         where,
         include: { category: true },
+        orderBy: {
+          category: {
+            id: 'asc',
+          },
+        },
       });
       return { products };
     }
@@ -96,6 +101,11 @@ export class ProductService {
         where,
         include: {
           category: true,
+        },
+        orderBy: {
+          category: {
+            id: 'asc',
+          },
         },
       }),
     ]);
