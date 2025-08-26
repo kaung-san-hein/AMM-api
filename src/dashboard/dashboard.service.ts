@@ -7,7 +7,7 @@ export class DashboardService {
   constructor(private prisma: PrismaService) {}
 
   async getAllTotal() {
-    const [customerInvoiceTotal, supplierInvoiceTotal, stockAlert] =
+    const [customerInvoiceTotal, supplierInvoiceTotal, stockAlert, customerCount, supplierCount] =
       await Promise.all([
         this.prisma.customerInvoice.aggregate({
           _sum: {
@@ -28,12 +28,16 @@ export class DashboardService {
           },
           where: { stock: { lt: 50 } },
         }),
+        this.prisma.customer.count(),
+        this.prisma.supplier.count(),
       ]);
 
     return {
       customerInvoiceTotal: customerInvoiceTotal._sum.total || 0,
       supplierInvoiceTotal: supplierInvoiceTotal._sum.total || 0,
       stockAlert: stockAlert._count.id || 0,
+      customerCount: customerCount || 0,
+      supplierCount: supplierCount || 0,
     };
   }
 }
