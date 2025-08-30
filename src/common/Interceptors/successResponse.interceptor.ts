@@ -14,7 +14,7 @@ export class SuccessResponseInterceptor implements NestInterceptor {
         success: true,
         statusCode: context.switchToHttp().getResponse().statusCode,
         message: 'Operation successful!',
-        data: data || null,
+        data: data !== undefined && data !== null ? data : null,
         timestamp: new Date().toISOString(),
       })),
     );
