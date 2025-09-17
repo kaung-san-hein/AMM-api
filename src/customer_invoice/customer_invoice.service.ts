@@ -104,6 +104,20 @@ export class CustomerInvoiceService {
     };
   }
 
+  async findAllForExport() {
+    const customer_invoices = await this.prisma.customerInvoice.findMany({
+      orderBy: {
+        id: 'desc',
+      },
+      include: {
+        customer_invoice_items: true,
+        customer: true,
+      },
+    });
+    
+    return customer_invoices;
+  }
+
   async findOne(id: number) {
     const result = await this.prisma.customerInvoice.findUnique({
       where: { id },

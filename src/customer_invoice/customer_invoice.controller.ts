@@ -38,6 +38,12 @@ export class CustomerInvoiceController {
     return this.customerInvoiceService.getReport();
   }
 
+  @Get('/export')
+  @HttpCode(HttpStatus.OK)
+  getExport() {
+    return this.customerInvoiceService.findAllForExport();
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createCustomerInvoiceDto: CreateCustomerInvoiceDto) {

@@ -39,6 +39,12 @@ export class SupplierInvoiceController {
     return this.supplierInvoiceService.getOrders(+page, +limit);
   }
 
+  @Get('/export')
+  @HttpCode(HttpStatus.OK)
+  getExport() {
+    return this.supplierInvoiceService.findAllForExport();
+  }
+
   @Patch('/orders/:id')
   @HttpCode(HttpStatus.CREATED)
   updateOrder(@Param('id') id: string, @Body() updateSupplierInvoiceDto: UpdateSupplierInvoiceDto) {

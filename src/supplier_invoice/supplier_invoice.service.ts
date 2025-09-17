@@ -74,6 +74,23 @@ export class SupplierInvoiceService {
     };
   }
 
+  async findAllForExport() {
+    const supplier_invoices = await this.prisma.supplierInvoice.findMany({
+      where: {
+        status: SupplierInvoiceStatus.PAID,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+      include: {
+        supplier_invoice_items: true,
+        supplier: true,
+      },
+    });
+
+    return supplier_invoices;
+  }
+
   async findOne(id: number) {
     const result = await this.prisma.supplierInvoice.findUnique({
       where: { id },
